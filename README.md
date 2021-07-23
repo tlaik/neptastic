@@ -26,6 +26,8 @@ Graphical improvements mod for Hyperdimension Neptunia Re;Birth2 & Re;Birth3 gam
      - You can find the game folder by right-clicking on your Nep game in Steam library, choosing "Properties", going to "Local files" tab and clicking "Browse".
  3. **If installing for Re;Birth3:** Created a folder named "Birth3" inside the base game folder and move the mod files into it.
 
+Steam guides are available for [Re;Birth2](https://steamcommunity.com/sharedfiles/filedetails/?id=2554588656) and [Re;Birth3](https://steamcommunity.com/sharedfiles/filedetails/?id=2555028259)!
+
 ## Configure:
  Default configuration already provides all the improvements, including 2.0x resolution and 4K shadows.\
  If you wish to tune it yourself - Open the nep.ini file with any text editor. If needed, right-click on it and go to "Open With"\
