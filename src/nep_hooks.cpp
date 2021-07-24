@@ -63,13 +63,12 @@ int cgCreateProgram(int context, int program_type, const char* program, int prof
             program = progBuf;
             break;
 
-        case 5350: // RB1
-        case 3727: // RB1 & RB2
+        case 3727: // RB2
         case 5365: // RB2
         case 5575: // RB3
         case 4206: // RB3
             // Vertex shaders for outlines
-            if(outlinesTransparency == 0.0f)
+            if((nepGame == NEP_RB2 || nepGame == NEP_RB3) && outlinesTransparency == 0.0f)
                 program = "";
             break;
 
