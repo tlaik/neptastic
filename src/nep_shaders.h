@@ -86,7 +86,7 @@ half4	main( InInfo In ) : Color0\n\
 			final_colour += kernel[kSize + j] * kernel[kSize + i] * tex2D(s_TextureBase0, In.Texcoord0.xy + (float2(i, j) / res.xy) * blurScale).rgb;}}\n\
 	GlareCol.rgb = final_colour / (Z*Z);\n\
 	GlareCol.rgb = pow(GlareCol.rgb, %f);\n\
-	GlareCol.rgb *= %f;\n\
+	GlareCol.rgb *= %f * 0.5f;\n\
 	Col = (Col + GlareCol) - (Col * GlareCol);\n\
 	float contrast = remap(ContrastParam0, ContrastParam1, ContrastParam2, ContrastParam3/*min*/, ContrastParam4/*max*/);\n\
 	if( 0<ContrastParam4 ){\n\
