@@ -10,7 +10,7 @@
 #define NEP_CFG_TRUE	"Yes"
 #define NEP_CFG_FALSE	"No"
 
-const char* nepCfgOptFmt[(int)NEP_TYPE_MAX] = { "%d", "%f", "%3s" };
+const char* nepCfgOptFmt[NEP_TYPE_MAX] = { "%d", "%f", "%3s" };
 
 template <class T, NepCfgOptType NepType>
 void NepConfig::setOption(const char* name, const char* desc, T val) {
@@ -84,6 +84,7 @@ void NepConfig::loadDefault() {
 	setOption<float, NEP_FLOAT>("Bloom contrast", NULL, 2.0f);
 	setOption<float, NEP_FLOAT>("Bloom softness", NULL, 10.0f);
 	setOption("Bloom samples", NULL, 5);
+	setOption<bool, NEP_BOOL>("Safe mode", "Avoids problems (such as broken Live2D CG) with certain drivers by disabling some functionality\n", false);
 	updateTxt();
 }
 

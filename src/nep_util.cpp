@@ -19,7 +19,8 @@ void getNepWindow() {
     while ((wnd = FindWindowExA(NULL, wnd, NULL, NULL)) != NULL) {
         char buf[1024];
         GetWindowTextA(wnd, buf, sizeof(buf));
-        if (nepGame == NEP_RB2 && strstr(buf, "Re;Birth2") ||
+        if (nepGame == NEP_RB1 && strstr(buf, "Re;Birth1") ||
+            nepGame == NEP_RB2 && strstr(buf, "Re;Birth2") ||
             nepGame == NEP_RB3 && strstr(buf, "Re;Birth3")) {
             RECT size;
             GetClientRect(wnd, &size);
@@ -32,11 +33,11 @@ void getNepWindow() {
 }
 
 void fpsUnlock() {
-    int frameIntervalTarget = 10; // us
+    const int frameIntervalTarget = 10; // us
+    const int ofs[2] = { 0x23A687, 0x2836A9 };
 
     // What right and proper fix doth not possess a machine code injection?
-    int32_t nepBase = (uint32_t)GetModuleHandleA("NeptuniaReBirth2.exe");
-    int32_t fpsCodeOrig = nepBase + 0x2836A9;
+    int32_t fpsCodeOrig = nepBase + ofs[nepGame];
     int32_t fpsRet = fpsCodeOrig + 5;
     uint8_t* hookBody = NULL;
 
@@ -84,23 +85,6 @@ void computeSettings() {
     sizesComputed = true;
 }
 
-bool rgbaToRgb(int width, int height, unsigned char* data) {
-    for (int i = 3; i < width * height * 4; i += 4) {
-        if (data[i] != 0 && data[i] != 255) {
-            return false;
-        }
-    }
-    int origPos = 4;
-    for (int i = 3; i < width * height * 3; i++) {
-        if (width % 2 && i % 3 == 0 && i % width == 0)
-            origPos -= 4;
-        data[i] = data[origPos++];
-        if ((origPos + 1) % 4 == 0) origPos++;
-    }
-    NEP_LOG("Repacking done for %d x %d texture\n", width, height)
-    return true;
-}
-
 void printGlErrors() {
     GLenum err;
     while ((err = glGetError()) != 0) {
@@ -135,6 +119,7 @@ void setBloomSize(GLsizei* w, GLsizei* h) {
 bool checkIsShadow(GLsizei w, GLsizei h) {
     bool res = false;
     switch(nepGame) {
+        case NEP_RB1: res = w == DEF_SHADOW_RB1 && h == DEF_SHADOW_RB1; break;
         case NEP_RB2: res = w == DEF_SHADOW_RB2 && h == DEF_SHADOW_RB2; break;
         case NEP_RB3: res = w == DEF_SHADOW_RB3 && h == DEF_SHADOW_RB3; break;
     }

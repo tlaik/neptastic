@@ -22,30 +22,27 @@ HWND wnd = NULL;
 
 int cgCreateProgram(int context, int program_type, const char* program, int profile, const char* entry, const char** args) {
     subhook_remove(cgCreateProgram_hook);
+
+    //NEP_LOG("cgCreateProgram - len: %d, code:%s\n\n", strlen(program), program);
     
     static float outlinesTransparency = nepCfg.getf("Outlines intensity");
     static bool simpleOutlines = nepCfg.getb("Simple outlines");
     static float shadowBlur = nepCfg.getf("Shadow blur");
 
+    //goto skip;
     char progBuf[10240];
     switch(strlen(program)) {
+        // Disable the dogshit Vita-resolution FXAA that ruins the picture on glorious 8K PC monitors
+        // Also fill the bloom part with config values
+        // Yes, that's right, they put FXAA and bloom code into the same fucking shader.
+        case 10436: // RB1
         case 9905: // RB2
         case 9416: // RB3
-            // Disable the dogshit Vita-resolution FXAA that ruins the picture on glorious 8K PC monitors
-            // Also fill the bloom part with config values
-            // Yes, that's right, they put FXAA and bloom code into the same fucking shader.
-            sprintf(progBuf, nep_new_bloom_no_fxaa,
-                nepCfg.geti("Bloom samples"),
-                nepCfg.getf("Bloom softness"),
-                nepCfg.getf("Bloom contrast"),
-                nepCfg.getf("Bloom intensity"));
-            program = progBuf;
-            break;
-
+        // Victory end screen. For some reason it must have a different shader that does nearly the same job.
+        case 6989: // RB1
         case 6465: // RB2
         case 6468: // RB3
-            // Victory end screen. For some reason it must have a different shader that does nearly the same job.
-            sprintf(progBuf, nep_new_bloom_no_fxaa,
+            sprintf(progBuf, nepGame == NEP_RB1 ? nep_new_bloom_no_fxaa_rb1 : nep_new_bloom_no_fxaa,
                 nepCfg.geti("Bloom samples"),
                 nepCfg.getf("Bloom softness"),
                 nepCfg.getf("Bloom contrast"),
@@ -53,18 +50,21 @@ int cgCreateProgram(int context, int program_type, const char* program, int prof
             program = progBuf;
             break;
             
+        case 551: // RB1
         case 650: // RB2 & RB3
             sprintf(progBuf, nep_outlines_items, outlinesTransparency);
             program = progBuf;
             break;
 
+        case 944: // RB1
         case 905: // RB2
         case 946: // RB3
             sprintf(progBuf, simpleOutlines ? nep_outlines_flat_girls : nep_outlines_girls, outlinesTransparency);
             program = progBuf;
             break;
 
-        case 3727: // RB2
+        case 5350: // RB1
+        case 3727: // RB1 & RB2
         case 5365: // RB2
         case 5575: // RB3
         case 4206: // RB3
@@ -73,10 +73,12 @@ int cgCreateProgram(int context, int program_type, const char* program, int prof
                 program = "";
             break;
 
-        case 990:
-            sprintf(progBuf, nep_shadow, ((float)SHADOW_RES_CFG / targetShadowSize) * shadowBlur);
+        case 2063: // RB1
+        case 990: // RB2 && RB3
+            sprintf(progBuf, nepGame == NEP_RB1 ? nep_shadow_rb1 : nep_shadow, ((float)SHADOW_RES_CFG / targetShadowSize) * shadowBlur);
             program = progBuf;
     }
+    skip:
 
     int res = cgCreateProgram_real(context, program_type, program, profile, entry, args);
 
@@ -103,23 +105,24 @@ GLPROXY_EXTERN PROC GLPROXY_DECL glTexImage2D(GLenum target, GLint level, GLint 
     glGetIntegerv(GL_TEXTURE_BINDING_2D, &tex);
     //NEP_LOG("glTexImage2D id: %d, width: %d, height: %d, target: %d, level: %d, internalformat: %d, format: %d, type: %d, data: %#010x\n", tex, width, height, target, level, internalformat, format, type, (uint32_t)data)
     
-    if(checkSize(width, height)) {
-        if(nepGame == NEP_RB2 || tex < 20) {
+    if (checkSize(width, height) &&
+        (!safeMode || safeMode && tex < 20)) {
+        if (nepGame == NEP_RB1 || nepGame == NEP_RB2 || tex < 20) {
             width = targetWidth;
             height = targetHeight;
             data = NULL;
         }
-        else if(nepGame == NEP_RB3) {
+        else if (nepGame == NEP_RB3) {
             // Unlike RB2, in RB3 textures are always created with data, even if that data is completely empty at the time.
             // Sometimes it isn't, however; Tutorial images (also sized 1920x1088) are one such case.
             bool empty = true;
-            for(int i = 0; i < width * height * 4; i++) // It's RGBA, I promise
-                if(((uint8_t*)data)[i]) {
+            for (int i = 0; i < width * height * 4; i++) // It's RGBA, I promise
+                if (((uint8_t*)data)[i]) {
                     empty = false;
                     checkSizeExcludeTex = tex;
                     break;
                 }
-            if(empty) {
+            if (empty) {
                 data = malloc(targetWidth * targetHeight * 4);
                 freeData = true;
                 width = targetWidth;
@@ -133,7 +136,7 @@ GLPROXY_EXTERN PROC GLPROXY_DECL glTexImage2D(GLenum target, GLint level, GLint 
         if(tex == 8 || tex == 9 || tex == 10) {
             width = targetShadowSize;
             height = targetShadowSize;
-            if(nepGame == NEP_RB3) {
+            if(nepGame == NEP_RB1 || nepGame == NEP_RB3) {
                 data = malloc(width * height * 4); // RGBA format. For monochrome shadows.
                 freeData = true;
             }
@@ -143,12 +146,6 @@ GLPROXY_EXTERN PROC GLPROXY_DECL glTexImage2D(GLenum target, GLint level, GLint 
         }
     }
     else if(width > 2048 || height > 2048) {
-        // Crunch
-        if (target == GL_TEXTURE_2D && format == GL_RGBA && internalformat == GL_RGBA &&
-            (!data || data && rgbaToRgb(width, height, (unsigned char*)data))) {
-            format = GL_RGB;
-            internalformat = GL_RGB;
-        }
         // Compressing screenspace effect textures does not end well.
         if(width != targetWidth && (internalformat == GL_RGB || internalformat == GL_RGBA)) {
             internalformat = internalformat == GL_RGB ? GL_COMPRESSED_RGB : GL_COMPRESSED_RGBA;
@@ -156,7 +153,7 @@ GLPROXY_EXTERN PROC GLPROXY_DECL glTexImage2D(GLenum target, GLint level, GLint 
         }
     }
 
-    if (target == GL_TEXTURE_2D && data != NULL) {
+    if(target == GL_TEXTURE_2D && data != NULL) {
         GLfloat largest_supported_anisotropy;
         glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &largest_supported_anisotropy);
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, largest_supported_anisotropy);
@@ -179,7 +176,8 @@ void __stdcall glRenderbufferStorageEXT(GLenum target, GLenum internalformat, GL
     int tex;
     glGetIntegerv(GL_TEXTURE_BINDING_2D, &tex);
 
-    if(tex != checkSizeExcludeTex && checkSize(width, height)) {
+    if(tex != checkSizeExcludeTex && checkSize(width, height) &&
+        (!safeMode || safeMode && tex < 20)) {
         width = targetWidth;
         height = targetHeight;
     }
@@ -205,7 +203,7 @@ GLPROXY_EXTERN PROC GLPROXY_DECL glViewport(GLint x, GLint y, GLsizei width, GLs
     if (!wnd) {
         getNepWindow();
         computeSettings();
-        if (nepGame == NEP_RB2 && nepCfg.getb("FPS Unlock"))
+        if ((nepGame == NEP_RB1 || nepGame == NEP_RB2) && nepCfg.getb("FPS Unlock"))
             fpsUnlock();
     }
 
@@ -219,6 +217,7 @@ GLPROXY_EXTERN PROC GLPROXY_DECL glViewport(GLint x, GLint y, GLsizei width, GLs
     else if (checkIsBloom(width, height))
         setBloomSize(&width, &height);
     else if(checkIsShadow(width, height) && (
+        nepGame == NEP_RB1 && (tex == 0 || tex == 8 || tex == 9) ||
         nepGame == NEP_RB2 && (tex == 0 || tex == 8 || tex == 9) ||
         nepGame == NEP_RB3 && tex == 0)) {
         width = targetShadowSize;
@@ -242,13 +241,15 @@ GLPROXY_EXTERN PROC GLPROXY_DECL glScissor(GLint x, GLint y, GLsizei width, GLsi
     int tex;
     glGetIntegerv(GL_TEXTURE_BINDING_2D, &tex);
 
-    if(tex != checkSizeExcludeTex && checkSize(width, height)) {
+    if(tex != checkSizeExcludeTex && checkSize(width, height) &&
+        (!safeMode || safeMode && tex < 20)) {
         width = targetWidth;
         height = targetHeight;
     }
     else if (checkIsBloom(width, height))
         setBloomSize(&width, &height);
     else if(checkIsShadow(width, height) && (
+        nepGame == NEP_RB1 && (tex == 0 || tex == 8 || tex == 9) ||
         nepGame == NEP_RB2 && (tex == 0 || tex == 8 || tex == 9) ||
         nepGame == NEP_RB3 && tex == 0)) {
         width = targetShadowSize;
