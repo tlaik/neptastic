@@ -17,6 +17,7 @@ NepGame nepGame = NEP_UNKNOWN_GAME;
 int nepBase = 0;
 const char* nepGameName[NEP_UNKNOWN_GAME] = { "RB1", "RB2", "RB3" };
 FILE* nepLog = NULL;
+NepLogLevel nepLogLevel = NEP_LOG_INFO;
 bool safeMode = false;
 
 typedef void* (*malloc_t)(size_t size);
@@ -35,13 +36,13 @@ void* malloc_custom(size_t size) {
             if(nepGame == NEP_RB1) chunk = malloc_real(chunkSize);
             else if (nepGame == NEP_RB2) chunk = malloc_real(chunkSize);
             if(chunk)
-                NEP_LOG("Preallocating %u bytes @ %#010x\n", chunkSize, (uint32_t)chunk)
+                NEP_LOGI("Preallocating %u bytes @ %#010x\n", chunkSize, (uint32_t)chunk)
             else
-                NEP_LOG("Failed to preallocate %u bytes\n", chunkSize)
+                NEP_LOGE("Failed to preallocate %u bytes\n", chunkSize)
         }
 
         if(size == chunkSize) {
-            NEP_LOG("Returning preallocated chunk @ %#010x\n", (uint32_t)chunk)
+            NEP_LOGI("Returning preallocated chunk @ %#010x\n", (uint32_t)chunk)
             void* tmp = chunk;
             chunk = NULL;
             chunkUsed = true;
@@ -52,7 +53,7 @@ void* malloc_custom(size_t size) {
     void* res = malloc_real(size);
     if(!res) {
         MessageBoxA(NULL, "Out of memory, time to die", "Nepu!", MB_ICONWARNING | MB_OK);
-        NEP_LOG("Allocation of %u bytes failed\n", size)
+        NEP_LOGE("Allocation of %u bytes failed\n", size)
     }
 
     subhook_install(malloc_hook);
@@ -78,8 +79,12 @@ bool nep_main() {
             ExitProcess(0);
         }
 
+        nepCfg.loadConfig();
+        safeMode = nepCfg.getb("Safe mode");
+        nepLogLevel = (NepLogLevel)nepCfg.geti("Log level");
+
         nepLog = fopen(NEP_PATH("nep.log"), "w");
-        NEP_LOG("Commence the Nep log for %s\n", nepGameName[nepGame])
+        NEP_LOGI("Commence the Nep log for %s\n", nepGameName[nepGame])
 
         cgCreateProgram_real = (cgCreateProgram_t)GetProcAddress(GetModuleHandleA("cg.dll"), "cgCreateProgram");
         cgCreateProgram_hook = subhook_new((void*)cgCreateProgram_real, (void*)cgCreateProgram, SUBHOOK_NONE);
@@ -89,9 +94,6 @@ bool nep_main() {
         malloc_real = (malloc_t)GetProcAddress(GetModuleHandleA(nepGame == NEP_RB1 ? "MSVCR110.dll" : "MSVCR120.dll"), "malloc");
         malloc_hook = subhook_new((void*)malloc_real, (void*)malloc_custom, SUBHOOK_NONE);
         subhook_install(malloc_hook);
-
-        nepCfg.loadConfig();
-        safeMode = nepCfg.getb("Safe mode");
 
         initialized = true;
     }

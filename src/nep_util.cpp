@@ -26,7 +26,7 @@ void getNepWindow() {
             GetClientRect(wnd, &size);
             wndWidth = size.right;
             wndHeight = size.bottom;
-            NEP_LOG("Window @ %#010x - client size %d x %d\n", (uint32_t)wnd, wndWidth, wndHeight)
+            NEP_LOGI("Window @ %#010x - client size %d x %d\n", (uint32_t)wnd, wndWidth, wndHeight)
             return;
         }
     }
@@ -70,7 +70,7 @@ void fpsUnlock() {
     // FPS go brrrr
     memcpy((void*)fpsCodeOrig, hook, sizeof(hook));
 
-    NEP_LOG("FPS unlocked\n")
+    NEP_LOGI("FPS unlocked\n")
 }
 
 void computeSettings() {
@@ -80,7 +80,7 @@ void computeSettings() {
     targetWidth = (int)(wndWidth * nepCfg.getf("Resolution scaling"));
     targetHeight = (int)(wndHeight * nepCfg.getf("Resolution scaling"));
     targetShadowSize = (int)(SHADOW_RES_CFG * nepCfg.getf("Shadow resolution"));
-    NEP_LOG("Resolution: %d x %d, shadow size: %d\n", targetWidth, targetHeight, targetShadowSize)
+    NEP_LOGI("Resolution: %d x %d, shadow size: %d\n", targetWidth, targetHeight, targetShadowSize)
 
     sizesComputed = true;
 }
@@ -88,7 +88,7 @@ void computeSettings() {
 void printGlErrors() {
     GLenum err;
     while ((err = glGetError()) != 0) {
-        NEP_LOG("GL error: %#06x\n", err)
+        NEP_LOGE("GL error: %#06x\n", err)
     }
 }
 

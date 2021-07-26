@@ -21,9 +21,8 @@ int checkSizeExcludeTex = -1;
 HWND wnd = NULL;
 
 int cgCreateProgram(int context, int program_type, const char* program, int profile, const char* entry, const char** args) {
+    NEP_LOGV("cgCreateProgram enter | len: %d\n", strlen(program));
     subhook_remove(cgCreateProgram_hook);
-
-    //NEP_LOG("cgCreateProgram - len: %d, code:%s\n\n", strlen(program), program);
     
     static float outlinesTransparency = nepCfg.getf("Outlines intensity");
     static bool simpleOutlines = nepCfg.getb("Simple outlines");
@@ -77,12 +76,12 @@ int cgCreateProgram(int context, int program_type, const char* program, int prof
             sprintf(progBuf, nepGame == NEP_RB1 ? nep_shadow_rb1 : nep_shadow, ((float)SHADOW_RES_CFG / targetShadowSize) * shadowBlur);
             program = progBuf;
     }
-    skip:
+    //skip:
 
     int res = cgCreateProgram_real(context, program_type, program, profile, entry, args);
 
     subhook_install(cgCreateProgram_hook);
-
+    NEP_LOGV("cgCreateProgram exit\n");
     return res;
 }
 
@@ -102,7 +101,7 @@ GLPROXY_EXTERN PROC GLPROXY_DECL glTexImage2D(GLenum target, GLint level, GLint 
     bool freeData = false;
     int tex;
     glGetIntegerv(GL_TEXTURE_BINDING_2D, &tex);
-    //NEP_LOG("glTexImage2D id: %d, width: %d, height: %d, target: %d, level: %d, internalformat: %d, format: %d, type: %d, data: %#010x\n", tex, width, height, target, level, internalformat, format, type, (uint32_t)data)
+    NEP_LOGV("glTexImage2D enter | id: %d, width: %d, height: %d, target: %d, level: %d, internalformat: %d, format: %d, type: %d, data: %#010x\n", tex, width, height, target, level, internalformat, format, type, (uint32_t)data)
     
     if (checkSize(width, height) &&
         (!safeMode || safeMode && tex < 20)) {
@@ -148,7 +147,7 @@ GLPROXY_EXTERN PROC GLPROXY_DECL glTexImage2D(GLenum target, GLint level, GLint 
         // Compressing screenspace effect textures does not end well.
         if(width != targetWidth && (internalformat == GL_RGB || internalformat == GL_RGBA)) {
             internalformat = internalformat == GL_RGB ? GL_COMPRESSED_RGB : GL_COMPRESSED_RGBA;
-            NEP_LOG("Compressing %d x %d texture\n", width, height)
+            NEP_LOGI("Compressing %d x %d texture\n", width, height)
         }
     }
 
@@ -158,12 +157,13 @@ GLPROXY_EXTERN PROC GLPROXY_DECL glTexImage2D(GLenum target, GLint level, GLint 
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, largest_supported_anisotropy);
     }
 
+    NEP_LOGV("glTexImage2D pre call | id: %d, width: %d, height: %d, target: %d, level: %d, internalformat: %d, format: %d, type: %d, data: %#010x\n", tex, width, height, target, level, internalformat, format, type, (uint32_t)data)
     auto ret = TGLFUNC_CALL(glTexImage2D, target, level, internalformat, width, height, border, format, type, data);
     // Here in the Wild East we do this and many more things unfathomable.
     if(freeData) free((void*)data);
     
     printGlErrors();
-    
+    NEP_LOGV("glTexImage2D exit\n");
     return ret;
 }
 
@@ -174,7 +174,7 @@ glRenderbufferStorageEXT_t glRenderbufferStorageEXT_real;
 void __stdcall glRenderbufferStorageEXT(GLenum target, GLenum internalformat, GLsizei width, GLsizei height) {
     int tex;
     glGetIntegerv(GL_TEXTURE_BINDING_2D, &tex);
-
+    NEP_LOGV("glRenderbufferStorageEXT enter | id: %d, width: %d, height: %d, target: %d, internalformat: %d\n", tex, width, height, target, internalformat)
     if(tex != checkSizeExcludeTex && checkSize(width, height) &&
         (!safeMode || safeMode && tex < 20)) {
         width = targetWidth;
@@ -193,21 +193,27 @@ void __stdcall glRenderbufferStorageEXT(GLenum target, GLenum internalformat, GL
     }
 
     glRenderbufferStorageEXT_real(target, internalformat, width, height);
+    NEP_LOGV("glRenderbufferStorageEXT exit\n");
 }
 
 GLPROXY_EXTERN PROC GLPROXY_DECL glViewport(GLint x, GLint y, GLsizei width, GLsizei height) {
     static GLProxy::TGLFunc<PROC, GLint, GLint, GLsizei, GLsizei> TGLFUNC_DECL(glViewport);
 
-    // glViewport is the first one to be called among all functions whose parameters need to be changed
-    if (!wnd) {
-        getNepWindow();
-        computeSettings();
-        if ((nepGame == NEP_RB1 || nepGame == NEP_RB2) && nepCfg.getb("FPS Unlock"))
-            fpsUnlock();
-    }
-
     int tex;
     glGetIntegerv(GL_TEXTURE_BINDING_2D, &tex);
+    NEP_LOGV("glViewport enter | id: %d, x: %d, y: %d, width: %d, height: %d\n", tex, x, y, width, height)
+
+    // glViewport is the first one to be called among all functions whose parameters need to be changed
+    if (!wnd) {
+        NEP_LOGV("Getting window\n")
+        getNepWindow();
+        NEP_LOGV("Computing settings\n")
+        computeSettings();
+        NEP_LOGV("Checking FPS unlock...\n")
+        if ((nepGame == NEP_RB1 || nepGame == NEP_RB2) && nepCfg.getb("FPS Unlock"))
+            fpsUnlock();
+        NEP_LOGV("Initial glViewport setup done\n")
+    }
 
     if(tex != checkSizeExcludeTex && checkSize(width, height)) {
         width = targetWidth;
@@ -231,7 +237,9 @@ GLPROXY_EXTERN PROC GLPROXY_DECL glViewport(GLint x, GLint y, GLsizei width, GLs
         height = height * targetHeight / DEF_H;
     }
 
-    return TGLFUNC_CALL(glViewport, x, y, width, height);
+    auto ret = TGLFUNC_CALL(glViewport, x, y, width, height);
+    NEP_LOGV("glViewport exit\n");
+    return ret;
 }
 
 GLPROXY_EXTERN PROC GLPROXY_DECL glScissor(GLint x, GLint y, GLsizei width, GLsizei height) {
@@ -239,6 +247,7 @@ GLPROXY_EXTERN PROC GLPROXY_DECL glScissor(GLint x, GLint y, GLsizei width, GLsi
 
     int tex;
     glGetIntegerv(GL_TEXTURE_BINDING_2D, &tex);
+    NEP_LOGV("glScissor enter | id: %d, x: %d, y: %d, width: %d, height: %d\n", tex, x, y, width, height)
 
     if(tex != checkSizeExcludeTex && checkSize(width, height) &&
         (!safeMode || safeMode && tex < 20)) {
@@ -263,12 +272,14 @@ GLPROXY_EXTERN PROC GLPROXY_DECL glScissor(GLint x, GLint y, GLsizei width, GLsi
         height = height * targetHeight / DEF_H;
     }
 
-    return TGLFUNC_CALL(glScissor, x, y, width, height);
+    auto ret = TGLFUNC_CALL(glScissor, x, y, width, height);
+    NEP_LOGV("glScissor exit\n");
+    return ret;
 }
 
 GLPROXY_EXTERN PROC GLPROXY_DECL wglGetProcAddress(LPCSTR funcName) {
     static GLProxy::TGLFunc<PROC, LPCSTR> TGLFUNC_DECL(wglGetProcAddress);
-
+    NEP_LOGV("wglGetProcAddress: %s\n", funcName)
     if (strcmp(funcName, "glRenderbufferStorageEXT") == 0) {
         glRenderbufferStorageEXT_real = (glRenderbufferStorageEXT_t)TGLFUNC_CALL(wglGetProcAddress, funcName);
         return (PROC)glRenderbufferStorageEXT;

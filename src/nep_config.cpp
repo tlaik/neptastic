@@ -85,6 +85,7 @@ void NepConfig::loadDefault() {
 	setOption<float, NEP_FLOAT>("Bloom softness", NULL, 10.0f);
 	setOption("Bloom samples", NULL, 5);
 	setOption<bool, NEP_BOOL>("Safe mode", "Avoids problems (such as broken Live2D CG) with certain drivers by disabling some functionality", false);
+	setOption<int, NEP_INT>("Log level", "0: Off, 1: Errors, 2: Warnings, 3: Information, 4: Verbose", 4);
 	updateTxt();
 }
 
@@ -137,7 +138,7 @@ void NepConfig::loadConfig() {
 		}
 
 		if(unknown)
-			NEP_LOG("Unknown option: [%s]\n", buf)
+			NEP_LOGW("Unknown option: [%s]\n", buf)
 	}
 
 	updateTxt();
