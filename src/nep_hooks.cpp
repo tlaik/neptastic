@@ -41,6 +41,7 @@ int cgCreateProgram(int context, int program_type, const char* program, int prof
         case 6989: // RB1
         case 6465: // RB2
         case 6468: // RB3
+            if(!nepCfg.getb("Enable new FXAA and bloom")) break;
             sprintf(progBuf, nepGame == NEP_RB1 ? nep_new_bloom_no_fxaa_rb1 : nep_new_bloom_no_fxaa,
                 nepCfg.geti("Bloom samples"),
                 nepCfg.getf("Bloom softness"),
@@ -51,6 +52,7 @@ int cgCreateProgram(int context, int program_type, const char* program, int prof
             
         case 551: // RB1
         case 650: // RB2 & RB3
+            if (!nepCfg.getb("Enable outline control")) break;
             sprintf(progBuf, nep_outlines_items, outlinesTransparency);
             program = progBuf;
             break;
@@ -58,6 +60,7 @@ int cgCreateProgram(int context, int program_type, const char* program, int prof
         case 944: // RB1
         case 905: // RB2
         case 946: // RB3
+            if (!nepCfg.getb("Enable outline control")) break;
             sprintf(progBuf, simpleOutlines ? nep_outlines_flat_girls : nep_outlines_girls, outlinesTransparency);
             program = progBuf;
             break;
@@ -66,6 +69,7 @@ int cgCreateProgram(int context, int program_type, const char* program, int prof
         case 5365: // RB2
         case 5575: // RB3
         case 4206: // RB3
+            if (!nepCfg.getb("Enable outline control")) break;
             // Vertex shaders for outlines
             if((nepGame == NEP_RB2 || nepGame == NEP_RB3) && outlinesTransparency == 0.0f)
                 program = "";
@@ -73,6 +77,7 @@ int cgCreateProgram(int context, int program_type, const char* program, int prof
 
         case 2063: // RB1
         case 990: // RB2 && RB3
+            if (!nepCfg.getb("Enable shadow control")) break;
             sprintf(progBuf, nepGame == NEP_RB1 ? nep_shadow_rb1 : nep_shadow, ((float)SHADOW_RES_CFG / targetShadowSize) * shadowBlur);
             program = progBuf;
     }
@@ -103,7 +108,13 @@ GLPROXY_EXTERN PROC GLPROXY_DECL glTexImage2D(GLenum target, GLint level, GLint 
     glGetIntegerv(GL_TEXTURE_BINDING_2D, &tex);
     NEP_LOGV("glTexImage2D enter | id: %d, width: %d, height: %d, target: %d, level: %d, internalformat: %d, format: %d, type: %d, data: %#010x\n", tex, width, height, target, level, internalformat, format, type, (uint32_t)data)
     
-    if (checkSize(width, height) &&
+    static bool resControl = nepCfg.getb("Enable resolution control");
+    static bool newFxaaBloom = nepCfg.getb("Enable new FXAA and bloom");
+    static bool shadowControl = nepCfg.getb("Enable shadow control");
+    static bool anisotropy = nepCfg.getb("Enable anisotropy");
+    static bool compression = nepCfg.getb("Enable texture compression");
+
+    if (resControl && checkSize(width, height) &&
         (!safeMode || safeMode && tex < 20)) {
         if (nepGame == NEP_RB1 || nepGame == NEP_RB2 || tex < 20) {
             width = targetWidth;
@@ -128,9 +139,9 @@ GLPROXY_EXTERN PROC GLPROXY_DECL glTexImage2D(GLenum target, GLint level, GLint 
             }
         }
     }
-    else if (!data && checkIsBloom(width, height))
+    else if (newFxaaBloom && !data && checkIsBloom(width, height))
         setBloomSize(&width, &height);
-    else if(checkIsShadow(width, height)) {
+    else if(shadowControl && checkIsShadow(width, height)) {
         if(tex == 8 || tex == 9 || tex == 10) {
             width = targetShadowSize;
             height = targetShadowSize;
@@ -143,7 +154,7 @@ GLPROXY_EXTERN PROC GLPROXY_DECL glTexImage2D(GLenum target, GLint level, GLint 
                 internalformat = GL_RED;
         }
     }
-    else if(width > 2048 || height > 2048) {
+    else if(compression && (width > 2048 || height > 2048)) {
         // Compressing screenspace effect textures does not end well.
         if(width != targetWidth && (internalformat == GL_RGB || internalformat == GL_RGBA)) {
             internalformat = internalformat == GL_RGB ? GL_COMPRESSED_RGB : GL_COMPRESSED_RGBA;
@@ -151,7 +162,7 @@ GLPROXY_EXTERN PROC GLPROXY_DECL glTexImage2D(GLenum target, GLint level, GLint 
         }
     }
 
-    if(target == GL_TEXTURE_2D && data != NULL) {
+    if(anisotropy && target == GL_TEXTURE_2D && data != NULL) {
         GLfloat largest_supported_anisotropy;
         glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &largest_supported_anisotropy);
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, largest_supported_anisotropy);
@@ -175,14 +186,19 @@ void __stdcall glRenderbufferStorageEXT(GLenum target, GLenum internalformat, GL
     int tex;
     glGetIntegerv(GL_TEXTURE_BINDING_2D, &tex);
     NEP_LOGV("glRenderbufferStorageEXT enter | id: %d, width: %d, height: %d, target: %d, internalformat: %d\n", tex, width, height, target, internalformat)
-    if(tex != checkSizeExcludeTex && checkSize(width, height) &&
+
+    static bool resControl = nepCfg.getb("Enable resolution control");
+    static bool newFxaaBloom = nepCfg.getb("Enable new FXAA and bloom");
+    static bool shadowControl = nepCfg.getb("Enable shadow control");
+
+    if(resControl && tex != checkSizeExcludeTex && checkSize(width, height) &&
         (!safeMode || safeMode && tex < 20)) {
         width = targetWidth;
         height = targetHeight;
     }
-    else if(checkIsBloom(width, height))
+    else if(newFxaaBloom && checkIsBloom(width, height))
         setBloomSize(&width, &height);
-    else if (checkIsShadow(width, height)) {
+    else if (shadowControl && checkIsShadow(width, height)) {
         // Needed for RB2. Not sure if any other buffers of RB3 (512x512) shadow size are created later in that game, but doesn't hurt to leave this just in case.
         static int counter = 0;
         if (counter == 0) {
@@ -202,6 +218,10 @@ GLPROXY_EXTERN PROC GLPROXY_DECL glViewport(GLint x, GLint y, GLsizei width, GLs
     int tex;
     glGetIntegerv(GL_TEXTURE_BINDING_2D, &tex);
     NEP_LOGV("glViewport enter | id: %d, x: %d, y: %d, width: %d, height: %d\n", tex, x, y, width, height)
+    
+    static bool resControl = nepCfg.getb("Enable resolution control");
+    static bool newFxaaBloom = nepCfg.getb("Enable new FXAA and bloom");
+    static bool shadowControl = nepCfg.getb("Enable shadow control");
 
     // glViewport is the first one to be called among all functions whose parameters need to be changed
     if (!wnd) {
@@ -215,13 +235,13 @@ GLPROXY_EXTERN PROC GLPROXY_DECL glViewport(GLint x, GLint y, GLsizei width, GLs
         NEP_LOGV("Initial glViewport setup done\n")
     }
 
-    if(tex != checkSizeExcludeTex && checkSize(width, height)) {
+    if(resControl && tex != checkSizeExcludeTex && checkSize(width, height)) {
         width = targetWidth;
         height = targetHeight;
     }
-    else if (checkIsBloom(width, height))
+    else if(newFxaaBloom && checkIsBloom(width, height))
         setBloomSize(&width, &height);
-    else if(checkIsShadow(width, height) && (
+    else if(shadowControl && checkIsShadow(width, height) && (
         nepGame == NEP_RB1 && (tex == 0 || tex == 8 || tex == 9) ||
         nepGame == NEP_RB2 && (tex == 0 || tex == 8 || tex == 9) ||
         nepGame == NEP_RB3 && tex == 0)) {
@@ -230,7 +250,7 @@ GLPROXY_EXTERN PROC GLPROXY_DECL glViewport(GLint x, GLint y, GLsizei width, GLs
     }
 
     // Maps/UI
-    if ((x > 0 && y > 0) || y < 0) {
+    if (resControl && ((x > 0 && y > 0) || y < 0)) {
         x = x * targetWidth / DEF_W;
         y = y * targetHeight / DEF_H;
         width = width * targetWidth / DEF_W;
@@ -249,14 +269,18 @@ GLPROXY_EXTERN PROC GLPROXY_DECL glScissor(GLint x, GLint y, GLsizei width, GLsi
     glGetIntegerv(GL_TEXTURE_BINDING_2D, &tex);
     NEP_LOGV("glScissor enter | id: %d, x: %d, y: %d, width: %d, height: %d\n", tex, x, y, width, height)
 
-    if(tex != checkSizeExcludeTex && checkSize(width, height) &&
+    static bool resControl = nepCfg.getb("Enable resolution control");
+    static bool newFxaaBloom = nepCfg.getb("Enable new FXAA and bloom");
+    static bool shadowControl = nepCfg.getb("Enable shadow control");
+
+    if(resControl && tex != checkSizeExcludeTex && checkSize(width, height) &&
         (!safeMode || safeMode && tex < 20)) {
         width = targetWidth;
         height = targetHeight;
     }
-    else if (checkIsBloom(width, height))
+    else if(newFxaaBloom && checkIsBloom(width, height))
         setBloomSize(&width, &height);
-    else if(checkIsShadow(width, height) && (
+    else if(shadowControl && checkIsShadow(width, height) && (
         nepGame == NEP_RB1 && (tex == 0 || tex == 8 || tex == 9) ||
         nepGame == NEP_RB2 && (tex == 0 || tex == 8 || tex == 9) ||
         nepGame == NEP_RB3 && tex == 0)) {
@@ -265,7 +289,7 @@ GLPROXY_EXTERN PROC GLPROXY_DECL glScissor(GLint x, GLint y, GLsizei width, GLsi
     }
         
     // Maps/UI
-    if ((x > 0 && y > 0) || y < 0) {
+    if (resControl && ((x > 0 && y > 0) || y < 0)) {
         x = x * targetWidth / DEF_W;
         y = y * targetHeight / DEF_H;
         width = width * targetWidth / DEF_W;
@@ -279,12 +303,13 @@ GLPROXY_EXTERN PROC GLPROXY_DECL glScissor(GLint x, GLint y, GLsizei width, GLsi
 
 GLPROXY_EXTERN PROC GLPROXY_DECL wglGetProcAddress(LPCSTR funcName) {
     static GLProxy::TGLFunc<PROC, LPCSTR> TGLFUNC_DECL(wglGetProcAddress);
+    static bool vsyncControl = nepCfg.getb("Enable VSync control");
     NEP_LOGV("wglGetProcAddress: %s\n", funcName)
     if (strcmp(funcName, "glRenderbufferStorageEXT") == 0) {
         glRenderbufferStorageEXT_real = (glRenderbufferStorageEXT_t)TGLFUNC_CALL(wglGetProcAddress, funcName);
         return (PROC)glRenderbufferStorageEXT;
     }
-    else if (strcmp(funcName, "wglSwapIntervalEXT") == 0) {
+    else if (vsyncControl && strcmp(funcName, "wglSwapIntervalEXT") == 0) {
         wglSwapIntervalEXT_real = (wglSwapIntervalEXT_t)TGLFUNC_CALL(wglGetProcAddress, funcName);
         return (PROC)wglSwapIntervalEXT;
     }

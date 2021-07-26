@@ -79,21 +79,23 @@ bool nep_main() {
             ExitProcess(0);
         }
 
+        nepLog = fopen(NEP_PATH("nep.log"), "w");
+        NEP_LOGI("Commence the Nep log for %s\n", nepGameName[nepGame])
+
         nepCfg.loadConfig();
         safeMode = nepCfg.getb("Safe mode");
         nepLogLevel = (NepLogLevel)nepCfg.geti("Log level");
-
-        nepLog = fopen(NEP_PATH("nep.log"), "w");
-        NEP_LOGI("Commence the Nep log for %s\n", nepGameName[nepGame])
 
         cgCreateProgram_real = (cgCreateProgram_t)GetProcAddress(GetModuleHandleA("cg.dll"), "cgCreateProgram");
         cgCreateProgram_hook = subhook_new((void*)cgCreateProgram_real, (void*)cgCreateProgram, SUBHOOK_NONE);
         subhook_install(cgCreateProgram_hook);
 
-        // Literally breaking into malloc to make this ass of a game work with hi-res shadows
-        malloc_real = (malloc_t)GetProcAddress(GetModuleHandleA(nepGame == NEP_RB1 ? "MSVCR110.dll" : "MSVCR120.dll"), "malloc");
-        malloc_hook = subhook_new((void*)malloc_real, (void*)malloc_custom, SUBHOOK_NONE);
-        subhook_install(malloc_hook);
+        if(nepCfg.getb("Enable memory optimization")) {
+            // Literally breaking into malloc to make this ass of a game work with hi-res shadows
+            malloc_real = (malloc_t)GetProcAddress(GetModuleHandleA(nepGame == NEP_RB1 ? "MSVCR110.dll" : "MSVCR120.dll"), "malloc");
+            malloc_hook = subhook_new((void*)malloc_real, (void*)malloc_custom, SUBHOOK_NONE);
+            subhook_install(malloc_hook);
+        }
 
         initialized = true;
     }

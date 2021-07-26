@@ -86,6 +86,14 @@ void NepConfig::loadDefault() {
 	setOption("Bloom samples", NULL, 5);
 	setOption<bool, NEP_BOOL>("Safe mode", "Avoids problems (such as broken Live2D CG) with certain drivers by disabling some functionality", false);
 	setOption<int, NEP_INT>("Log level", "0: Off, 1: Errors, 2: Warnings, 3: Information, 4: Verbose", 4);
+	setOption<bool, NEP_BOOL>("Enable resolution control", "Mod functionality switches", true);
+	setOption<bool, NEP_BOOL>("Enable new FXAA and bloom", NULL, true);
+	setOption<bool, NEP_BOOL>("Enable outline control", NULL, true);
+	setOption<bool, NEP_BOOL>("Enable shadow control", NULL, true);
+	setOption<bool, NEP_BOOL>("Enable anisotropy", NULL, true);
+	setOption<bool, NEP_BOOL>("Enable VSync control", NULL, true);
+	setOption<bool, NEP_BOOL>("Enable texture compression", NULL, true);
+	setOption<bool, NEP_BOOL>("Enable memory optimization", NULL, true);
 	updateTxt();
 }
 
@@ -112,13 +120,13 @@ void NepConfig::loadConfig() {
 
 	while(fgets(buf, sizeof(buf), f)) {
 		int len = strlen(buf);
-		if(len < 2 || buf[0] == '/' && buf[1] == '/')
+		if(len < 2 || buf[0] == '/' && buf[1] == '/' || buf[0] == '\r' && buf[1] == '\n')
 			continue;
 		strtok(buf, "\r\n");
 
 		char scanTmp[128];
 		bool unknown = true;
-		for(auto i  = opt.begin(); i != opt.end(); i++) {
+		for(auto i = opt.begin(); i != opt.end(); i++) {
 			if(sscanf(buf, "%[A-Za-z ]", scanTmp) == 0 || strcmp(scanTmp, i->name) != 0) continue;
 			unknown = false;
 			sprintf(scanTmp, "%s: %s", i->name, nepCfgOptFmt[i->type]);
