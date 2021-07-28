@@ -9,7 +9,7 @@ Graphical improvements mod for Hyperdimension Neptunia Re;Birth1, Re;Birth2 and 
  - Disabled FXAA that degraded visuals inside dungeons
  - Tutorials don't break in Re;Birth3
  - Anisotropic texture filtering
- - FPS unlock for Re;Birth2
+ - FPS unlock for Re;Birth1 and Re;Birth2
  - Improved Bloom shader
  - Bloom intensity & contrast settings
  - Increased shadow quality - to 8192x8192 and beyond
@@ -35,7 +35,7 @@ Steam guides are available for [Re;Birth1](https://steamcommunity.com/sharedfile
  
  If you ever mess up your configuration, you can just delete the nep.ini file, and a new one with default settings will be created next time you start the game.
 
- Also, you can copy these config files between both games.
+ Also, you can copy these config files between all three games.
 
 ## Screenshots & Examples:
 ![main](examples/shadows.jpg)
