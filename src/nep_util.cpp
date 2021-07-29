@@ -134,8 +134,8 @@ bool checkIsBloom(GLsizei w, GLsizei h) {
 
 void setBloomSize(GLsizei* w, GLsizei* h) {
     if (*w == bloomSize[0][0] && *h == bloomSize[0][1]) {
-        *w = 1920;
-        *h = 1080;
+        *w = wndWidth;
+        *h = wndHeight;
     }
     else {
         *w = 0;

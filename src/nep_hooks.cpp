@@ -156,7 +156,8 @@ GLPROXY_EXTERN PROC GLPROXY_DECL glTexImage2D(GLenum target, GLint level, GLint 
     }
     else if(compression && (width > 2048 || height > 2048)) {
         // Compressing screenspace effect textures does not end well.
-        if(width != targetWidth && (internalformat == GL_RGB || internalformat == GL_RGBA)) {
+        // Some screenspace effects are hardcoded to be 2x the default size (1920x1088 -> 3840x2176)
+        if(width != targetWidth && width % DEF_W != 0 && (internalformat == GL_RGB || internalformat == GL_RGBA)) {
             internalformat = internalformat == GL_RGB ? GL_COMPRESSED_RGB : GL_COMPRESSED_RGBA;
             NEP_LOGI("Compressing %d x %d texture\n", width, height)
         }
