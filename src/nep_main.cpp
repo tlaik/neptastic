@@ -62,11 +62,14 @@ void* malloc_custom(size_t size) {
 }
 
 NepGame getNepGame() {
-    if((nepBase = (int)GetModuleHandleA("NeptuniaReBirth1.exe")) != 0)
+    if((nepBase = (int)GetModuleHandleA("NeptuniaReBirth1.exe")) != 0 ||
+       (nepBase = (int)GetModuleHandleA("NeptuniaReBirth1_NS.exe")) != 0)
         return NEP_RB1;
-    if((nepBase = (int)GetModuleHandleA("NeptuniaReBirth2.exe")) != 0)
+    if((nepBase = (int)GetModuleHandleA("NeptuniaReBirth2.exe")) != 0 ||
+        (nepBase = (int)GetModuleHandleA("NeptuniaReBirth2_NS.exe")) != 0)
         return NEP_RB2;
-    if((nepBase = (int)GetModuleHandleA("NeptuniaReBirth3.exe")) != 0)
+    if((nepBase = (int)GetModuleHandleA("NeptuniaReBirth3.exe")) != 0 ||
+        (nepBase = (int)GetModuleHandleA("NeptuniaReBirth3_NS.exe")) != 0)
         return NEP_RB3;
     return NEP_UNKNOWN_GAME;
 }
