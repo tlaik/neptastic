@@ -105,8 +105,14 @@ void computeSettings() {
     bool sizesComputed = false;
     if(sizesComputed) return;
 
-    targetWidth = (int)(wndWidth * nepCfg.getf("Resolution scaling"));
-    targetHeight = (int)(wndHeight * nepCfg.getf("Resolution scaling"));
+    if(nepCfg.geti("Render width") && nepCfg.geti("Render height")) {
+        targetWidth = nepCfg.geti("Render width");
+        targetHeight = nepCfg.geti("Render height");
+    }
+    else {
+        targetWidth = (int)(wndWidth * nepCfg.getf("Resolution scaling"));
+        targetHeight = (int)(wndHeight * nepCfg.getf("Resolution scaling"));
+    }
     targetShadowSize = (int)(SHADOW_RES_CFG * nepCfg.getf("Shadow resolution"));
     NEP_LOGI("Resolution: %d x %d, shadow size: %d\n", targetWidth, targetHeight, targetShadowSize)
 
@@ -134,8 +140,8 @@ bool checkIsBloom(GLsizei w, GLsizei h) {
 
 void setBloomSize(GLsizei* w, GLsizei* h) {
     if (*w == bloomSize[0][0] && *h == bloomSize[0][1]) {
-        *w = wndWidth;
-        *h = wndHeight;
+        *w = DEF_W;
+        *h = DEF_H;
     }
     else {
         *w = 0;

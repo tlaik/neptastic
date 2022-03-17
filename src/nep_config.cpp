@@ -74,7 +74,9 @@ const char* NepConfig::getTxt() { return txt.c_str(); }
 
 void NepConfig::loadDefault() {
 	setOption<float, NEP_FLOAT>("Resolution scaling", "1.0 = Render at window/screen size. Higher numbers produce smoother image, but values above 2.0 are not recommended", 2.0f);
-	setOption<bool, NEP_BOOL>("FPS Unlock", "Only for RB1 & RB2 || Yes = Unlimited FPS, No = Default 60 FPS cap", true);
+	setOption<int, NEP_INT>("Render width", "Exact rendering width & height - will be used instead of scaling multiplier if width & height are non-zero", 0);
+	setOption<int, NEP_INT>("Render height", NULL, 0);
+	setOption<bool, NEP_BOOL>("FPS Unlock", "Only for RB1 & RB2 || Yes = Unlimited FPS, No = Default 60 FPS cap. Disable if experiencing weird teleporting in-game (thanks PhyreEngine)", true);
 	setOption("VSync type", "1 = No VSync, 2 = VSync, 3 = Adaptive VSync (Recommended)", 3);
 	setOption<bool, NEP_BOOL>("Simple outlines", "Yes = Simple gray outlines, No = Default textured outlines", false);
 	setOption<float, NEP_FLOAT>("Outlines intensity", NULL, 0.2f);
@@ -85,7 +87,7 @@ void NepConfig::loadDefault() {
 	setOption<float, NEP_FLOAT>("Bloom softness", NULL, 10.0f);
 	setOption("Bloom samples", NULL, 5);
 	setOption<bool, NEP_BOOL>("Safe mode", "Avoids problems (such as broken Live2D CG) with certain drivers by disabling some functionality", false);
-	setOption<int, NEP_INT>("Log level", "0: Off, 1: Errors, 2: Warnings, 3: Information, 4: Verbose", 4);
+	setOption<int, NEP_INT>("Log level", "0: Off, 1: Errors, 2: Warnings, 3: Information, 4: Verbose", 3);
 	setOption<bool, NEP_BOOL>("Enable resolution control", "Mod functionality switches", true);
 	setOption<bool, NEP_BOOL>("Enable new FXAA and bloom", NULL, true);
 	setOption<bool, NEP_BOOL>("Enable outline control", NULL, true);
