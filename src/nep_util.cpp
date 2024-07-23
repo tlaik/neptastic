@@ -17,20 +17,23 @@ const int bloomSize[][2] = {
     128, 72 };
 
 void getNepWindow() {
+    char buf[1024];
     while ((wnd = FindWindowExA(NULL, wnd, NULL, NULL)) != NULL) {
-        char buf[1024];
-        GetWindowTextA(wnd, buf, sizeof(buf));
-        if (nepGame == NEP_RB1 && strstr(buf, "Re;Birth1") ||
-            nepGame == NEP_RB2 && strstr(buf, "Re;Birth2") ||
-            nepGame == NEP_RB3 && strstr(buf, "Re;Birth3")) {
+        GetClassNameA(wnd, buf, sizeof(buf));
+        if (strstr(buf, "Neptunia")) {
             RECT size;
             GetClientRect(wnd, &size);
             wndWidth = size.right;
             wndHeight = size.bottom;
-            NEP_LOGI("Window @ %#010x - client size %d x %d\n", (uint32_t)wnd, wndWidth, wndHeight)
+            GetWindowTextA(wnd, buf, sizeof(buf));
+            NEP_LOGI("Window \"%s\" @ %#010x - client size %d x %d\n", buf, (uint32_t)wnd, wndWidth, wndHeight)
             return;
         }
     }
+
+    NEP_LOGE("Couldn't get game window, exiting.\n");
+    MessageBoxA(NULL, "Couldn't get the game window!", "Nepu!", MB_OK | MB_ICONERROR);
+    ExitProcess(1);
 }
 
 void fpsUnlock() {
