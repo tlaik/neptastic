@@ -104,6 +104,7 @@ void NepConfig::loadDefault() {
 	setOption<bool, NEP_BOOL>("Enable VSync control", NULL, true);
 	setOption<bool, NEP_BOOL>("Enable texture compression", NULL, true);
 	setOption<bool, NEP_BOOL>("Enable memory optimization", NULL, true);
+	setOption<const char*, NEP_STRING>("Override opengl dll name", "Load this instead of opengl32.dll. If it doesn't exist normal behavior will be used", "opengl32_nep.dll");
 	updateTxt();
 }
 
