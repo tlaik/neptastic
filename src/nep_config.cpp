@@ -10,7 +10,7 @@
 #define NEP_CFG_TRUE	"Yes"
 #define NEP_CFG_FALSE	"No"
 
-const char* nepCfgOptFmt[NEP_TYPE_MAX] = { "%d", "%f", "%3s" };
+const char* nepCfgOptFmt[NEP_TYPE_MAX] = { "%d", "%f", "%3s", "%s" };
 
 template <class T, NepCfgOptType NepType>
 void NepConfig::setOption(const char* name, const char* desc, T val) {
@@ -50,6 +50,13 @@ bool NepConfig::getb(const char* name) {
 	return false;
 };
 
+const char* NepConfig::gets(const char* name) {
+	const NepCfgOption* tmp = getOption(name);
+	if (tmp->type == NEP_STRING)
+		return tmp->val.sVal;
+	return NULL;
+}
+
 void NepConfig::updateTxt() {
 	txt.clear();
 	std::ostringstream sstream;
@@ -63,7 +70,8 @@ void NepConfig::updateTxt() {
 		switch(i->type) {
 			case NEP_INT: sstream << i->val.iVal; break;
 			case NEP_FLOAT: sstream << i->val.fVal; break;
-			case NEP_BOOL: sstream << (i->val.bVal ? NEP_CFG_TRUE : NEP_CFG_FALSE);
+			case NEP_BOOL: sstream << (i->val.bVal ? NEP_CFG_TRUE : NEP_CFG_FALSE); break;
+			case NEP_STRING: sstream << i->val.sVal; break;
 		}
 		sstream << std::endl;
 	}
@@ -140,10 +148,24 @@ void NepConfig::loadConfig() {
 				sscanf(buf, scanTmp, boolVal);
 				tmp.bVal = strcmp(boolVal, NEP_CFG_TRUE) == 0;
 			}
+			else if(i->type == NEP_STRING) {
+				sprintf(scanTmp, "%s: %%1024s", i->name);
+				char strBuf[1024];
+				if(sscanf(buf, scanTmp, strBuf))
+				{
+					int strLength = strlen(strBuf);
+					char* tmpStr = (char*)malloc(strLength + 1);
+					memcpy(tmpStr, strBuf, strLength + 1);
+					tmp.sVal = tmpStr;
+				}
+				else
+					tmp.sVal = (const char*)calloc(1, 1);
+			}
 			switch(i->type) {
 				case NEP_INT: setOption(i->name, i->desc, tmp.iVal); break;
 				case NEP_FLOAT: setOption<float, NEP_FLOAT>(i->name, i->desc, tmp.fVal); break;
 				case NEP_BOOL: setOption<bool, NEP_BOOL>(i->name, i->desc, tmp.bVal); break;
+				case NEP_STRING: setOption<const char*, NEP_STRING>(i->name, i->desc, tmp.sVal); break;
 			}
 		}
 

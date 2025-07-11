@@ -9,6 +9,7 @@ enum NepCfgOptType {
 	NEP_INT,
 	NEP_FLOAT,
 	NEP_BOOL,
+	NEP_STRING,
 	NEP_TYPE_MAX
 };
 extern const char* nepCfgOptFmt[(int)NEP_TYPE_MAX];
@@ -17,6 +18,7 @@ union NepVal {
 	int iVal;
 	float fVal;
 	bool bVal;
+	const char* sVal;
 };
 
 struct NepCfgOption {
@@ -37,6 +39,7 @@ public:
 	int geti(const char* name);
 	float getf(const char* name);
 	bool getb(const char* name);
+	const char* gets(const char* name);
 
 private:
 	void writeConfig();
