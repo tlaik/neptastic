@@ -26,6 +26,7 @@
 #include <cstdlib>
 #include <ctime>
 #include "nep_main.h"
+#include "nep_config.h"
 
 // ========================================================
 // GLProxy utilities:
@@ -112,6 +113,19 @@ public:
             fatalError("Real OpenGL DLL is already loaded!");
         }
 
+        const char* override = nepCfg.gets("Override opengl dll name");
+        if (override && override[0])
+        {
+            NEP_LOGV("Override enabled\n");
+            dllHandle = LoadLibraryA(override);
+
+            if (dllHandle)
+            {
+                NEP_LOGI("Using %s instead of opengl32.dll\n", override);
+                return;
+            }
+        }
+
         const auto glDllFilePath = getRealGLLibPath();
 
         dllHandle = LoadLibraryExA(glDllFilePath.c_str(), nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
@@ -125,6 +139,8 @@ public:
         {
             fatalError("GLProxy trying to load itself as the real opengl32.dll!");
         }
+
+        NEP_LOGI("Using system's opengl32.dll\n");
     }
 
     void unload()
