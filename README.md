@@ -51,3 +51,4 @@ Steam guides are available for [Re;Birth1](https://steamcommunity.com/sharedfile
  - [subhook](https://github.com/Zeex/subhook) - Hooking certain CG and CRT calls at runtme.
  - [Hyperresolution Neptunia](https://github.com/PeterTh/neptunia_hyperres) - Code to control main game resolution.
  - [Single-pass Gaussian Blur by mrharicot](https://www.shadertoy.com/view/XdfGDH) - Used in the new Bloom shader.
+ - [mrsteyk](https://github.com/mrsteyk) - OpenGL DLL overrides code.
